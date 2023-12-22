@@ -1,0 +1,103 @@
+import socket
+import threading
+import time
+
+
+class Server:
+    Clients = []
+    client_msg = {}
+
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+
+        self.network = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.network.bind((self.host, self.port))
+        self.network.listen(20)
+
+        print(f'server listen at {self.port}')
+        threading.Thread(target=self.pinger).start()
+
+    def pinger(self):
+        while True:
+            time.sleep(1)
+            for client in Server.Clients:
+                try:
+                    msg = 'ß'.encode('ISO-8859-1')
+                    client.sock.send(msg)
+                except ConnectionResetError:
+                    print('ConnectionResetError')
+                    client.terminate()
+                    Server.Clients.remove(client)
+                    pass
+                except ConnectionAbortedError:
+                    client.terminate()
+                    Server.Clients.remove(client)
+                    print('ConnectionAbortedError')
+                    pass
+
+    # 监听
+    def start(self):
+        while True:
+            client_sock, client_addr = self.network.accept()
+            print(f'client {client_addr} connected')
+
+            client_sock.send('Connected Successfully!'.encode())
+            time.sleep(0.1)
+
+            msg = ' '
+            for client in Server.Clients:
+                msg = msg + ' ' + client.clientID
+            client_sock.send(msg.encode('utf-8'))
+            client_thread = threading.Thread(target=self.wait_for_user_nickname, args=[client_sock])
+            client_thread.start()
+
+    def wait_for_user_nickname(self, client_sock):
+        new_user_id = client_sock.recv(128).decode('utf-8')
+        print('new user choose nickname: ' + new_user_id)
+        client = Client(client_sock, new_user_id)
+
+        for client_ID in Server.client_msg:
+            client_msg = Server.client_msg[client_ID]
+            client_msg = client_msg.encode('ISO-8859-1')
+            client_sock.sendall(client_msg)
+
+            Server.Clients.append(client)
+            client.start()
+            Server.client_msg[client_ID] += client.msg
+            print('new user choose nickname: ' + Server.client_msg)
+
+
+class Client:
+    def __init__(self, sock, clientID):
+        self.sock = sock
+        self.clientID = clientID
+        self._run = True
+        Server.client_msg[self.clientID] = ''
+
+    def terminate(self):
+        self._run = False
+
+    def start(self):
+        while self._run:
+            msg = ''
+            while True:
+                data = self.sock.recv(1).decode('ISO-8859-1')
+                msg += data
+                if data == 'Ø':
+                    break
+            if msg[0] == 'D':
+                self.broadcast2Clients(msg)
+            pass
+
+    def broadcast2Clients(self, msg):
+        Server.client_msg[self.clientID] += msg
+        msg = msg.encode('ISO-8859-1')
+
+        for client in Server.Clients:
+            client.sock.sendall(msg)
+
+
+if __name__ == '__main__':
+    server = Server('0.0.0.0', 6500)
+    server.start()
