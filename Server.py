@@ -16,27 +16,7 @@ class Server:
         self.network.listen(20)
 
         print(f'server listen at {self.port}')
-        threading.Thread(target=self.pinger).start()
 
-    def pinger(self):
-        while True:
-            time.sleep(1)
-            for client in Server.Clients:
-                try:
-                    msg = 'ß'.encode('ISO-8859-1')
-                    client.sock.send(msg)
-                except ConnectionResetError:
-                    print('ConnectionResetError')
-                    client.terminate()
-                    Server.Clients.remove(client)
-                    pass
-                except ConnectionAbortedError:
-                    client.terminate()
-                    Server.Clients.remove(client)
-                    print('ConnectionAbortedError')
-                    pass
-
-    # 监听
     def start(self):
         while True:
             client_sock, client_addr = self.network.accept()
@@ -86,15 +66,23 @@ class Client:
                 msg += data
                 if data == 'Ø':
                     break
-            if msg[0] == 'D':
+            if msg[0] == 'D' or msg[0] == 'M':
                 self.broadcast2Clients(msg)
             pass
 
     def broadcast2Clients(self, msg):
-        Server.client_msg[self.clientID] += msg
+        print(msg)
+        msgList = msg.split(' ')
+        if msgList[0] == 'M':
+            msg = msg.replace('&', self.clientID)
+        if msgList[0] != 'M':
+            Server.client_msg[self.clientID] += msg
         msg = msg.encode('ISO-8859-1')
 
         for client in Server.Clients:
+            if client.clientID == self.clientID and msgList[0] == "M":
+                continue
+            print("seennennene")
             client.sock.sendall(msg)
 
 
