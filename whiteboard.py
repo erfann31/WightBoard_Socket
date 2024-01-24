@@ -36,8 +36,6 @@ class WhiteBoard:
             self.draw_line(msgLst)
         if draw_type == 'M':
             self.draw_mouse(msgLst)
-        if draw_type == 'C':
-            self.clear_board()
         else:
             pass
 

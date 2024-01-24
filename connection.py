@@ -36,7 +36,6 @@ class Connection:
             print("Sent message: %s" % msg)
             msg = msg.encode('ISO-8859-1')
             self.sock.send(msg)
-            # print("Sent message: %s" % msg)
         except UnicodeEncodeError:
             pass
 

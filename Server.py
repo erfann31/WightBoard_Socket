@@ -82,7 +82,6 @@ class Client:
         for client in Server.Clients:
             if client.clientID == self.clientID and msgList[0] == "M":
                 continue
-            print("seennennene")
             client.sock.sendall(msg)
 
 
